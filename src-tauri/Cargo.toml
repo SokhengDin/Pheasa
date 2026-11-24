@@ -2,6 +2,7 @@
 name         = "live-translator"
 version      = "0.1.0"
 description  = "Real-time speech translator with live subtitles and speaker labels"
+license      = "MIT"
 edition      = "2021"
 rust-version = "1.90"
 
