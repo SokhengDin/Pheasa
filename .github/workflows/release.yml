@@ -83,6 +83,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Build and publish
+        id: tauri
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -92,10 +93,36 @@ jobs:
           tagName:      ${{ github.ref_name }}
           releaseName:  "Phasa ${{ github.ref_name }}"
           releaseBody:  |
-            Python 3 must be installed on the machine to run Phasa.
+            ## Download
 
-            These builds are unsigned, so macOS Gatekeeper and Windows SmartScreen
-            will show a warning the first time you open the app.
-          releaseDraft: true
+            | System | File |
+            | --- | --- |
+            | macOS (Apple silicon) | `..._aarch64.dmg` |
+            | macOS (Intel) | `..._x64.dmg` |
+            | Windows | `..._x64-setup.exe` (or `.msi`) |
+            | Linux | `.AppImage`, `.deb` or `.rpm` |
+
+            ## Before you install
+
+            - **Python 3 must be installed** (python.org, Homebrew, or your package manager).
+            - The builds are not code-signed yet. On macOS, right-click the app and choose
+              **Open**. On Windows, click **More info**, then **Run anyway**.
+
+            See the [README](https://github.com/${{ github.repository }}#getting-started) to get started.
+          releaseDraft: false
           prerelease:   false
           args:         ${{ matrix.args }}
+
+      # tauri-action also uploads the zipped .app (only used by the updater).
+      # The .dmg is what people download, so remove the .app.tar.gz.
+      - name: Remove .app.tar.gz from the release
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api "repos/${{ github.repository }}/releases/${{ steps.tauri.outputs.releaseId }}/assets" \
+            --jq '.[] | select(.name | endswith(".app.tar.gz")) | .id' |
+          while read -r id; do
+            gh api -X DELETE "repos/${{ github.repository }}/releases/assets/$id"
+          done
