@@ -8,10 +8,21 @@
 
 use std::collections::VecDeque;
 
-const MAX_SAMPLES  : usize = 16_000 * 20;    // force a cut after 20 s
-const PARTIAL_STEP : usize = 16_000 * 3 / 2; // live preview every 1.5 s of new audio
+const MAX_SAMPLES  : usize = 16_000 * 15;    // force a cut after 15 s
+const SOFT_SAMPLES : usize = 16_000 * 8;     // past 8 s, cut at the next short pause
+const PARTIAL_STEP : usize = 16_000 * 3 / 2; // live preview every 1.5 s of new audio...
+const LONG_STEP    : usize = 16_000 * 3;     // ...or every 3 s once the segment is long
 const MIN_FLOOR    : f32   = 0.006;
 const NEURAL_LEVEL : f32   = 0.5;
+/// Frames sent to the neural gate per call. Each call crosses into Python, so
+/// batching ~256 ms at a time keeps that overhead low.
+const NEURAL_BATCH : usize = 8;
+
+/// Every preview re-transcribes the whole segment, so previews of long
+/// segments come less often to keep their cost down.
+fn partial_step(len: usize) -> usize {
+    if len >= SOFT_SAMPLES { LONG_STEP } else { PARTIAL_STEP }
+}
 
 pub enum SegEvent {
     Partial(Vec<f32>),
@@ -72,8 +83,9 @@ impl Segmenter {
 
         let frame = self.tuning.frame;
         let count = self.carry.len() / frame;
+        let batch = if self.gate.is_some() { NEURAL_BATCH } else { 1 };
 
-        if count == 0 {
+        if count < batch {
             return Vec::new();
         }
 
@@ -152,7 +164,12 @@ impl Segmenter {
             self.silence += 1;
         }
 
-        if self.silence >= t.hangover || self.buf.len() >= MAX_SAMPLES {
+        // A long segment is cut at a short pause rather than waiting for a full
+        // one, so it rarely reaches the hard limit and gets split mid-word.
+        let pause = self.silence >= t.hangover
+            || (self.buf.len() >= SOFT_SAMPLES && self.silence >= t.hangover / 3);
+
+        if pause || self.buf.len() >= MAX_SAMPLES {
             if self.voiced >= t.min_voiced {
                 events.push(SegEvent::Final(std::mem::take(&mut self.buf)));
             } else {
@@ -165,9 +182,51 @@ impl Segmenter {
             self.voiced       = 0;
             self.last_partial = 0;
             self.preroll.clear();
-        } else if self.buf.len() - self.last_partial >= PARTIAL_STEP {
+        } else if self.buf.len() - self.last_partial >= partial_step(self.buf.len()) {
             self.last_partial = self.buf.len();
             events.push(SegEvent::Partial(self.buf.clone()));
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn tone(ms: usize) -> Vec<f32> {
+        (0..16 * ms).map(|i| 0.2 * (i as f32 * 0.3).sin()).collect()
+    }
+
+    fn quiet(ms: usize) -> Vec<f32> {
+        vec![0.0; 16 * ms]
+    }
+
+    fn finals(seg: &mut Segmenter, audio: &[f32]) -> Vec<usize> {
+        audio
+            .chunks(160)
+            .flat_map(|c| seg.push(c))
+            .filter_map(|e| match e { SegEvent::Final(pcm) => Some(pcm.len()), _ => None })
+            .collect()
+    }
+
+    #[test]
+    fn short_pause_cuts_long_segment() {
+        let mut seg   = Segmenter::new(None);
+        let mut audio = tone(9_000);
+        audio.extend(quiet(300));
+
+        let cuts = finals(&mut seg, &audio);
+        assert_eq!(cuts.len(), 1);
+        assert!(cuts[0] < MAX_SAMPLES);
+    }
+
+    #[test]
+    fn short_pause_keeps_short_segment_open() {
+        let mut seg   = Segmenter::new(None);
+        let mut audio = tone(2_000);
+        audio.extend(quiet(300));
+        audio.extend(tone(2_000));
+
+        assert!(finals(&mut seg, &audio).is_empty());
     }
 }

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Check, Fingerprint, Mic, Monitor, Pencil } from "lucide-react";
 
 import { speakerColor } from "../lib/prefs";
+import { IconButton, TextInput, cx } from "./ui";
 
 interface Props {
     speaker      : string;
@@ -44,26 +45,33 @@ export function SpeakerTag({ speaker, source, names, onRename, known = true, can
     if (editing) {
         return (
             <form
-                className="speaker-edit"
+                className="inline-flex items-center gap-1"
                 onSubmit={(e) => {
                     e.preventDefault();
                     commit();
                 }}
             >
-                <input autoFocus value={draft} placeholder={speaker} onChange={(e) => setDraft(e.target.value)} />
-                <button className="icon-btn" type="submit" title="Rename here only"><Check size={14} /></button>
+                <TextInput autoFocus className="w-[140px]" value={draft} placeholder={speaker} onChange={(e) => setDraft(e.target.value)} />
+                <IconButton type="submit" title="Rename here only"><Check size={14} /></IconButton>
                 {offer ? (
-                    <button className="icon-btn" type="button" title="Save this name and remember the voice" onMouseDown={(e) => e.preventDefault()} onClick={remember}>
+                    <IconButton title="Save this name and remember the voice" onMouseDown={(e) => e.preventDefault()} onClick={remember}>
                         <Fingerprint size={14} />
-                    </button>
+                    </IconButton>
                 ) : null}
             </form>
         );
     }
 
     return (
+        // A capsule tinted with the speaker's own colour (currentColor).
         <button
-            className={`speaker-tag ${unknown ? "unknown" : ""}`}
+            type="button"
+            className={cx(
+                "group inline-flex h-[22px] items-center gap-[5px] rounded-full pr-[9px] pl-[7px] text-small font-semibold transition-[background] duration-250 ease-spring",
+                unknown
+                    ? "border border-dashed border-current bg-transparent"
+                    : "border-0 bg-current/13 shadow-[inset_0_0_0_.5px_color-mix(in_srgb,currentColor_18%,transparent)] hover:bg-current/20",
+            )}
             style={{ color: speakerColor(speaker) }}
             title={unknown ? "Unknown voice. Click to name it" : "Rename speaker"}
             onClick={() => {
@@ -73,7 +81,7 @@ export function SpeakerTag({ speaker, source, names, onRename, known = true, can
         >
             <Icon size={14} />
             <span>{shown}</span>
-            <Pencil size={11} className="edit-hint" />
+            <Pencil size={11} className="w-0 opacity-0 transition-[opacity,width] duration-250 ease-spring group-hover:w-[11px] group-hover:opacity-70" />
         </button>
     );
 }

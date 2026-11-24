@@ -43,6 +43,7 @@ System audio: Windows works out of the box. On macOS you may need a loopback dri
 - Speaker labels, and recognition of saved voices across meetings
 - Echo removal when you use speakers instead of headphones
 - Searchable history, a glossary, and export to SRT, VTT, TXT, Markdown or JSON
+- Command palette (Cmd/Ctrl+K) for every action, page and language
 - Global shortcuts: Cmd/Ctrl+Shift+Space (start or stop), S (subtitles), L (lock subtitles)
 
 Everything runs on your computer except the cloud translation backend. Saved voices are stored as numbers (embeddings), never as audio.

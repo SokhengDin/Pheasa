@@ -1,6 +1,6 @@
 [package]
 name         = "pheasa"
-version      = "0.1.0"
+version      = "0.1.1"
 description  = "Real-time speech translator with live subtitles and speaker labels"
 license      = "MIT"
 edition      = "2021"

@@ -6,6 +6,7 @@ import { buildExport, FORMATS, suggestedName } from "../lib/exporter";
 import type { ExportContent, ExportFormat } from "../lib/exporter";
 import type { Settings, TranscriptLine } from "../lib/types";
 import { languageName } from "../lib/types";
+import { Button, cx, GLASS_STRONG, IconButton, Select } from "./ui";
 
 interface Props {
     lines    : TranscriptLine[];
@@ -50,52 +51,51 @@ export function ExportMenu({ lines, names, settings }: Props) {
     };
 
     return (
-        <div className="menu-wrap">
-            <button className="btn" disabled={finals === 0} onClick={() => setOpen((v) => !v)} title="Export the transcript as a script or subtitles">
+        <div className="relative">
+            <IconButton size="lg" disabled={finals === 0} onClick={() => setOpen((v) => !v)} title="Export the transcript as a script or subtitles">
                 <FileDown size={16} />
-                <span>Export</span>
-            </button>
+            </IconButton>
 
             {open ? (
-                <div className="menu">
-                    <div className="menu-head">
+                <div className={cx("absolute right-0 bottom-[calc(100%+16px)] z-20 flex w-[300px] origin-bottom-right flex-col gap-3 rounded-pane p-4 animate-pop-up rim", GLASS_STRONG)}>
+                    <div className="flex items-center justify-between">
                         <strong>Export transcript</strong>
-                        <button className="icon-btn" onClick={() => setOpen(false)}><X size={14} /></button>
+                        <IconButton onClick={() => setOpen(false)}><X size={14} /></IconButton>
                     </div>
 
-                    <label>
+                    <label className="flex flex-col gap-1 text-small text-muted">
                         Format
-                        <select value={format} onChange={(e) => setFormat(e.target.value as ExportFormat)}>
+                        <Select className="w-full" value={format} onChange={(e) => setFormat(e.target.value as ExportFormat)}>
                             {FORMATS.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
-                        </select>
+                        </Select>
                     </label>
 
-                    <p className="hint">{FORMATS.find((f) => f.id === format)?.hint}</p>
+                    <p className="m-0 text-small text-muted">{FORMATS.find((f) => f.id === format)?.hint}</p>
 
-                    <label>
+                    <label className="flex flex-col gap-1 text-small text-muted">
                         Text
-                        <select value={content} onChange={(e) => setContent(e.target.value as ExportContent)}>
+                        <Select className="w-full" value={content} onChange={(e) => setContent(e.target.value as ExportContent)}>
                             <option value="both">Translation and original</option>
                             <option value="translation">Translation only</option>
                             <option value="original">Original only</option>
-                        </select>
+                        </Select>
                     </label>
 
-                    <div className="menu-actions">
-                        <button className="btn primary" onClick={save}>
+                    <div className="flex gap-2">
+                        <Button variant="primary" onClick={save}>
                             <FileDown size={16} />
                             <span>Save as</span>
-                        </button>
+                        </Button>
 
-                        <button className="btn" onClick={copy}>
+                        <Button onClick={copy}>
                             <Copy size={16} />
                             <span>Copy</span>
-                        </button>
+                        </Button>
                     </div>
 
                     {message ? (
-                        <div className="hint done">
-                            <Check size={12} />
+                        <div className="flex items-center gap-1.5 break-all text-small text-good">
+                            <Check size={12} className="shrink-0" />
                             <span>{message}</span>
                         </div>
                     ) : null}

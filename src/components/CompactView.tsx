@@ -3,6 +3,7 @@ import { Loader, Maximize2, Play, Square } from "lucide-react";
 import type { EngineStatus, Settings, TranscriptLine } from "../lib/types";
 import { speakerColor } from "../lib/prefs";
 import { LevelMeter } from "./LevelMeter";
+import { IconButton } from "./ui";
 
 interface Props {
     settings : Settings;
@@ -23,35 +24,36 @@ export function CompactView({ settings, status, lines, levels, names, onStart, o
     const speaker = last ? names[last.speaker] ?? last.speaker : "";
 
     return (
-        <div className="compact">
-            <div className="compact-bar" data-tauri-drag-region>
+        // One small pane: controls on top (clear of the traffic lights), the latest line below.
+        <div className="relative flex h-screen flex-col gap-1.5 bg-bg px-3 pt-2 pb-3 wash mac:bg-bg/70">
+            <div className="flex items-center gap-2 pl-16" data-tauri-drag-region>
                 {running ? (
-                    <button className="icon-btn" onClick={onStop} title="Stop"><Square size={14} /></button>
+                    <IconButton onClick={onStop} title="Stop"><Square size={14} /></IconButton>
                 ) : (
-                    <button className="icon-btn" onClick={onStart} disabled={loading || !settings.stt_model} title="Start">
-                        {loading ? <Loader size={14} className="spin" /> : <Play size={14} />}
-                    </button>
+                    <IconButton onClick={onStart} disabled={loading || !settings.stt_model} title="Start">
+                        {loading ? <Loader size={14} className="animate-spin" /> : <Play size={14} />}
+                    </IconButton>
                 )}
 
-                <div className="grow" data-tauri-drag-region />
+                <div className="min-w-0 flex-1" data-tauri-drag-region />
 
                 {running && settings.capture_mic    ? <LevelMeter source="mic"    level={levels.mic}    /> : null}
                 {running && settings.capture_system ? <LevelMeter source="system" level={levels.system} /> : null}
 
-                <button className="icon-btn" onClick={onExpand} title="Back to the full window">
+                <IconButton onClick={onExpand} title="Back to the full window">
                     <Maximize2 size={14} />
-                </button>
+                </IconButton>
             </div>
 
-            <div className="compact-body" data-tauri-drag-region>
+            <div className="flex flex-1 flex-col justify-center gap-0.5 overflow-hidden" data-tauri-drag-region>
                 {last ? (
                     <>
-                        <span className="compact-speaker" style={{ color: speakerColor(last.speaker) }}>{speaker}</span>
-                        <div className="compact-text">{last.translation ?? last.text}</div>
-                        {last.translation ? <div className="compact-orig">{last.text}</div> : null}
+                        <span className="text-tiny font-semibold" style={{ color: speakerColor(last.speaker) }}>{speaker}</span>
+                        <div className="font-display text-[18px] leading-[1.25] font-semibold tracking-[-.01em]">{last.translation ?? last.text}</div>
+                        {last.translation ? <div className="text-small text-muted">{last.text}</div> : null}
                     </>
                 ) : (
-                    <div className="compact-orig">{status.message}</div>
+                    <div className="text-small text-muted">{status.message}</div>
                 )}
             </div>
         </div>

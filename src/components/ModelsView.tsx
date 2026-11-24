@@ -25,6 +25,21 @@ import type {
     Settings,
     Task,
 } from "../lib/types";
+import {
+    Badge,
+    Button,
+    Callout,
+    cx,
+    EmptyState,
+    GLASS,
+    IconButton,
+    ProgressBar,
+    SectionLabel,
+    Segmented,
+    Skeleton,
+    SURFACE,
+    TINT,
+} from "./ui";
 
 const TABS: { id: Task; label: string; hint: string }[] = [
     { id: "stt",         label: "Speech to text", hint: "Whisper and other speech models"  },
@@ -62,11 +77,17 @@ interface Item {
     compatible : boolean;
 }
 
-function BackendBadge({ backend }: { backend: Backend }) {
-    if (backend === "native") return <span className="badge good">Built-in</span>;
-    if (backend === "mlx")    return <span className="badge accent">Apple GPU</span>;
+const ROW  = cx("relative mb-2 flex items-center gap-3 rounded-row px-4 py-3 animate-rise transition-[box-shadow,transform,background] duration-250 ease-spring", SURFACE);
+const META = "mt-0.5 flex flex-wrap items-center gap-2.5 text-small text-muted";
+const STAT = "inline-flex items-center gap-1";
+const HINT = "m-0 shrink-0 px-gutter pt-2 pb-3 text-small text-muted";
+const CHIP = "inline-flex h-6 items-center gap-[5px] rounded-full border-0 px-2.5 text-small transition-[background,color,box-shadow] duration-150";
 
-    return <span className="badge">Python</span>;
+function BackendBadge({ backend }: { backend: Backend }) {
+    if (backend === "native") return <Badge tone="good">Built-in</Badge>;
+    if (backend === "mlx")    return <Badge tone="accent">Apple GPU</Badge>;
+
+    return <Badge>Python</Badge>;
 }
 
 export function ModelsView({ settings, onChange, onOpen }: Props) {
@@ -207,61 +228,61 @@ export function ModelsView({ settings, onChange, onOpen }: Props) {
 
         if (p) {
             return (
-                <button className="btn" onClick={() => api.cancelDownload(item.id)} title="Cancel and remove the partial files">
+                <Button onClick={() => api.cancelDownload(item.id)} title="Cancel and remove the partial files">
                     <X size={16} />
                     <span>{pct > 0 ? `${pct.toFixed(0)}%` : "Starting"}</span>
-                </button>
+                </Button>
             );
         }
 
         if (item.installed) {
             return (
-                <div className="actions">
-                    <button className={`btn ${active(item) ? "primary" : ""}`} onClick={() => use(item)}>
+                <div className="flex shrink-0 gap-1.5">
+                    <Button variant={active(item) ? "primary" : "default"} onClick={() => use(item)}>
                         <CircleCheck size={16} />
                         <span>{active(item) ? "In use" : "Use"}</span>
-                    </button>
+                    </Button>
 
                     {item.task === "translation" ? (
-                        <button
-                            className={`btn ${activeSecond(item) ? "primary" : ""}`}
+                        <Button
+                            variant={activeSecond(item) ? "primary" : "default"}
                             onClick={() => use(item, true)}
                             title="Translate through English: this model handles the English to target step"
                         >
                             <span>{activeSecond(item) ? "Step 2" : "As step 2"}</span>
-                        </button>
+                        </Button>
                     ) : null}
                 </div>
             );
         }
 
         if (!item.compatible) {
-            return <button className="btn" disabled><span>Unsupported</span></button>;
+            return <Button disabled><span>Unsupported</span></Button>;
         }
 
         if (needsRuntime(item)) {
             return (
-                <button className="btn" onClick={() => onOpen("storage")} title="This model runs on the Python runtime">
+                <Button onClick={() => onOpen("storage")} title="This model runs on the Python runtime">
                     <Cpu size={16} />
                     <span>{item.backend === "mlx" ? "Set up MLX" : "Set up Python"}</span>
-                </button>
+                </Button>
             );
         }
 
         if (needsMlx(item)) {
             return (
-                <button className="btn" onClick={() => onOpen("storage")} title="Add the MLX packages to the runtime">
+                <Button onClick={() => onOpen("storage")} title="Add the MLX packages to the runtime">
                     <Cpu size={16} />
                     <span>Add MLX</span>
-                </button>
+                </Button>
             );
         }
 
         return (
-            <button className="btn" onClick={() => download(item)}>
+            <Button onClick={() => download(item)}>
                 <Download size={16} />
                 <span>Download{item.size_bytes > 0 ? ` (${formatBytes(item.size_bytes)})` : ""}</span>
-            </button>
+            </Button>
         );
     };
 
@@ -272,35 +293,38 @@ export function ModelsView({ settings, onChange, onOpen }: Props) {
 
         const pct = p.total > 0 ? Math.min(100, (p.downloaded / p.total) * 100) : 0;
 
-        return <div className="bar"><div className="fill" style={{ width: `${pct}%` }} /></div>;
+        return <ProgressBar value={pct / 100} />;
     };
 
     return (
-        <div className="view">
-            <header className="toolbar">
-                <div className="tabs">
-                    {TABS.map((tab) => (
-                        <button
-                            key={tab.id}
-                            className={`tab ${task === tab.id ? "active" : ""}`}
-                            onClick={() => setTask(tab.id)}
-                        >
-                            {tab.label}
-                        </button>
-                    ))}
-                </div>
+        <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto animate-fade">
+            <header className="sticky top-0 z-[5] flex shrink-0 flex-wrap items-center gap-2 px-gutter pt-3 pb-2.5 mac:pt-3.5 scroll-edge" data-tauri-drag-region>
+                <Segmented
+                    glass
+                    label="Model kind"
+                    options={TABS.map((tab) => ({ id: tab.id, label: tab.label }))}
+                    value={task}
+                    onChange={setTask}
+                />
 
-                <div className="spacer" />
+                <div className="flex-1" />
 
                 <form
-                    className="search"
+                    className={cx(
+                        "flex h-8 min-w-[280px] items-center gap-1.5 rounded-full px-3.5 text-muted",
+                        "transition-[box-shadow,background] duration-250 ease-spring",
+                        "focus-within:bg-surface-hi focus-within:shadow-[0_0_0_3.5px_color-mix(in_srgb,var(--accent)_40%,transparent)]",
+                        "@max-[760px]:min-w-0 @max-[760px]:flex-1",
+                        GLASS,
+                    )}
                     onSubmit={(e) => {
                         e.preventDefault();
                         search();
                     }}
                 >
-                    <Search size={16} />
+                    <Search size={16} className="shrink-0" />
                     <input
+                        className="h-full min-w-0 flex-1 border-0 bg-transparent p-0 outline-none focus-visible:outline-none"
                         value={query}
                         placeholder={`Search Hugging Face: ${TABS.find((t) => t.id === task)?.hint}`}
                         onChange={(e) => setQuery(e.target.value)}
@@ -308,11 +332,11 @@ export function ModelsView({ settings, onChange, onOpen }: Props) {
                 </form>
             </header>
 
-            <div className="chips" role="group" aria-label="Filter by Hugging Face tag">
+            <div className="flex shrink-0 flex-wrap items-center gap-1.5 px-gutter pt-1.5" role="group" aria-label="Filter by Hugging Face tag">
                 {TAG_PRESETS.map((preset) => (
                     <button
                         key={preset.id || "all"}
-                        className={`chip ${tag === preset.id ? "active" : ""}`}
+                        className={cx(CHIP, tag === preset.id ? `${TINT} font-medium` : "bg-fill text-fg hover:bg-fill-hover")}
                         title={preset.hint}
                         aria-pressed={tag === preset.id}
                         onClick={() => pickTag(preset.id)}
@@ -323,21 +347,27 @@ export function ModelsView({ settings, onChange, onOpen }: Props) {
                 ))}
 
                 <form
-                    className={`chip-input ${customActive ? "active" : ""}`}
+                    className={cx(CHIP, "focus-within:outline-2 focus-within:outline-accent", customActive ? `${TINT} font-medium` : "bg-fill text-muted")}
                     onSubmit={(e) => {
                         e.preventDefault();
                         setTag(cleanTag(customTag));
                     }}
                 >
-                    <TagIcon size={12} />
+                    <TagIcon size={12} className="shrink-0" />
                     <input
+                        className="h-full w-[130px] border-0 bg-transparent p-0 text-small text-inherit outline-none focus-visible:outline-none"
                         value={customTag}
                         placeholder="Other tag, then Enter"
                         aria-label="Custom Hugging Face tag"
                         onChange={(e) => setCustomTag(e.target.value)}
                     />
                     {customActive ? (
-                        <button type="button" className="chip-clear" title="Clear the tag" onClick={() => pickTag("")}>
+                        <button
+                            type="button"
+                            className="inline-flex size-4 shrink-0 items-center justify-center rounded-full border-0 bg-transparent p-0 text-inherit hover:bg-accent/22"
+                            title="Clear the tag"
+                            onClick={() => pickTag("")}
+                        >
                             <X size={12} />
                         </button>
                     ) : null}
@@ -345,80 +375,80 @@ export function ModelsView({ settings, onChange, onOpen }: Props) {
             </div>
 
             {tag === "mlx" && !runtime?.mlx_supported ? (
-                <div className="hint">
+                <div className={HINT}>
                     MLX models run only on a Mac with Apple silicon. You can browse them here, but they stay marked unsupported on this computer.
                 </div>
             ) : null}
 
             {anyPythonHere && !runtime?.ready ? (
-                <div className="callout">
-                    <Cpu size={20} />
-                    <div className="grow">
-                        <strong>Most models need the Python runtime</strong>
-                        <div className="muted">
-                            The built-in engine runs Whisper and Marian. Everything else runs through Python,
-                            installed in the app's own folder and removable in one click.
-                        </div>
-                    </div>
-                    <button className="btn primary" onClick={() => onOpen("storage")}>Set up</button>
-                </div>
+                <Callout
+                    className="mx-gutter my-1.5"
+                    icon={Cpu}
+                    title="Most models need the Python runtime"
+                    action={<Button variant="primary" onClick={() => onOpen("storage")}>Set up</Button>}
+                >
+                    The built-in engine runs Whisper and Marian. Everything else runs through Python,
+                    installed in the app's own folder and removable in one click.
+                </Callout>
             ) : null}
 
             {task === "translation" && settings.source_lang !== "en" && settings.target_lang !== "en"
                 && settings.source_lang !== "auto" ? (
-                <div className="hint">
+                <div className={HINT}>
                     No model for {settings.source_lang} to {settings.target_lang}? Use one model for the language to English,
                     and mark another as "step 2" for English to the target. NLLB and M2M100 cover many pairs alone.
                 </div>
             ) : null}
 
             {error ? (
-                <div className="status error">
-                    <TriangleAlert size={14} />
-                    <span>{error}</span>
+                <div className="shrink-0 px-gutter pt-1.5 pb-2">
+                    <div className="flex items-center gap-2 px-1 text-small font-medium text-bad">
+                        <TriangleAlert size={14} className="shrink-0" />
+                        <span>{error}</span>
+                    </div>
                 </div>
             ) : null}
 
             {here.length > 0 ? (
-                <section className="installed">
-                    <h3>Installed</h3>
+                <section className="shrink-0 px-gutter pt-3">
+                    <SectionLabel>Installed</SectionLabel>
 
                     {here.map((m) => (
-                        <div key={m.id} className="row">
-                            <CircleCheck size={16} className="ok" />
-                            <div className="grow">
-                                <div className="name">{m.id}</div>
-                                <div className="meta">
+                        <div key={m.id} className={ROW}>
+                            <CircleCheck size={16} className="shrink-0 text-good" />
+                            <div className="min-w-0 flex-1">
+                                <div className="truncate font-medium">{m.id}</div>
+                                <div className={META}>
                                     <BackendBadge backend={m.backend} />
-                                    <span className="stat"><HardDrive size={12} />{formatBytes(m.size_bytes)}</span>
+                                    <span className={STAT}><HardDrive size={12} />{formatBytes(m.size_bytes)}</span>
                                     {m.src_lang && m.tgt_lang ? <span>{m.src_lang} to {m.tgt_lang}</span> : null}
                                 </div>
                             </div>
 
                             {renderAction(asItem({ ...m, installed: true, compatible: true } as unknown as ModelCard))}
 
-                            <button className="icon-btn" onClick={() => remove(m.id, m.task)} title="Delete every file of this model">
+                            <IconButton onClick={() => remove(m.id, m.task)} title="Delete every file of this model">
                                 <Trash2 size={16} />
-                            </button>
+                            </IconButton>
                         </div>
                     ))}
                 </section>
             ) : null}
 
             {recs.length > 0 ? (
-                <section className="results">
-                    <h3><Sparkles size={14} /> Recommended</h3>
+                <section className="shrink-0 px-gutter pt-3">
+                    <SectionLabel className="flex items-center gap-1"><Sparkles size={14} /> Recommended</SectionLabel>
 
                     {recs.map((rec) => {
                         const item = asItem(rec);
 
                         return (
-                            <div key={rec.id} className="row">
-                                <div className="grow">
-                                    <div className="name">{rec.id}</div>
-                                    <div className="meta">
+                            <div key={rec.id} className={ROW}>
+                                <div className="min-w-0 flex-1">
+                                    <div className="truncate font-medium">{rec.id}</div>
+                                    <div className={META}>
                                         <BackendBadge backend={rec.backend} />
-                                        <span className="stat"><HardDrive size={12} />about {formatBytes(rec.size_bytes)}</span>
+                                        <span className={STAT}><HardDrive size={12} />about {formatBytes(rec.size_bytes)}</span>
                                         <span>{rec.note}</span>
                                     </div>
                                     {renderProgress(rec.id)}
@@ -431,37 +461,33 @@ export function ModelsView({ settings, onChange, onOpen }: Props) {
                 </section>
             ) : null}
 
-            <section className="results">
-                <h3>
+            <section className="shrink-0 px-gutter pt-3">
+                <SectionLabel>
                     {query.trim() ? "Results" : "Most downloaded"}
-                    {tag ? <span className="muted"> tagged {tag}</span> : null}
-                </h3>
+                    {tag ? <span className="text-muted"> tagged {tag}</span> : null}
+                </SectionLabel>
 
-                {loading ? [0, 1, 2, 3, 4].map((i) => <div key={i} className="skeleton" />) : null}
+                {loading ? [0, 1, 2, 3, 4].map((i) => <Skeleton key={i} />) : null}
 
                 {!loading && cards.length === 0 && !error ? (
-                    <div className="empty">
-                        <Search size={28} strokeWidth={1.5} />
-                        <strong>No models found</strong>
-                        <span>
-                            {tag
-                                ? `Nothing carries the "${tag}" tag for this search. Try another tag, or clear it.`
-                                : 'Try a shorter search, such as "whisper" or "opus-mt".'}
-                        </span>
-                    </div>
+                    <EmptyState icon={Search} title="No models found">
+                        {tag
+                            ? `Nothing carries the "${tag}" tag for this search. Try another tag, or clear it.`
+                            : 'Try a shorter search, such as "whisper" or "opus-mt".'}
+                    </EmptyState>
                 ) : null}
 
                 {!loading ? cards.map((card) => (
-                    <div key={card.id} className={`row ${card.compatible ? "" : "dim"}`}>
-                        <div className="grow">
-                            <div className="name">{card.id}</div>
+                    <div key={card.id} className={ROW}>
+                        <div className="min-w-0 flex-1">
+                            <div className={cx("truncate font-medium", !card.compatible && "text-muted")}>{card.id}</div>
 
-                            <div className="meta">
+                            <div className={META}>
                                 {card.compatible ? <BackendBadge backend={card.backend} /> : null}
-                                <span className="stat"><Download size={12} />{formatCount(card.downloads)}</span>
-                                <span className="stat"><Heart size={12} />{formatCount(card.likes)}</span>
-                                {card.size_bytes > 0 ? <span className="stat"><HardDrive size={12} />{formatBytes(card.size_bytes)}</span> : null}
-                                <span className={`badge ${card.compatible ? "good" : "bad"}`}>{card.note}</span>
+                                <span className={STAT}><Download size={12} />{formatCount(card.downloads)}</span>
+                                <span className={STAT}><Heart size={12} />{formatCount(card.likes)}</span>
+                                {card.size_bytes > 0 ? <span className={STAT}><HardDrive size={12} />{formatBytes(card.size_bytes)}</span> : null}
+                                <Badge tone={card.compatible ? "good" : "bad"}>{card.note}</Badge>
                             </div>
 
                             {renderProgress(card.id)}

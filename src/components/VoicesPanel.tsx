@@ -3,8 +3,12 @@ import { Check, Fingerprint, Mic, Pencil, Trash2, X } from "lucide-react";
 
 import { api, errorText } from "../lib/api";
 import type { Settings, VoiceInfo } from "../lib/types";
+import { Button, IconButton, ProgressBar, TextInput } from "./ui";
 
 const RECORD_SECONDS = 12;
+
+/** Small muted note inside the voices block, without the card padding of Hint. */
+const NOTE = "m-0 p-0 text-small text-muted";
 
 interface Props {
     settings: Settings;
@@ -78,39 +82,38 @@ export function VoicesPanel({ settings }: Props) {
     };
 
     return (
-        <div className="voices">
-            <div className="voices-head">
-                <Fingerprint size={16} strokeWidth={1.75} />
+        <div className="flex flex-col gap-2.5 border-t-[.5px] border-separator px-3.5 pt-3 pb-3.5">
+            <div className="flex items-center gap-2">
+                <Fingerprint size={16} strokeWidth={1.75} className="text-accent" />
                 <strong>Known voices</strong>
             </div>
 
             {voices.length === 0 ? (
-                <p className="hint inline">
+                <p className={NOTE}>
                     Nobody saved yet. Record your own voice below, or click an unknown speaker in a live
                     meeting and choose the fingerprint button to save them.
                 </p>
             ) : (
-                <ul className="voice-list">
+                <ul className="m-0 flex list-none flex-col gap-0.5 p-0">
                     {voices.map((voice) => (
-                        <li key={voice.id} className="voice-row">
+                        <li key={voice.id} className="flex min-h-8 items-center gap-2 rounded-ctl px-2 hover:bg-fill">
                             {editing === voice.id ? (
                                 <form
-                                    className="speaker-edit"
+                                    className="inline-flex items-center gap-1"
                                     onSubmit={(e) => {
                                         e.preventDefault();
                                         void rename(voice.id);
                                     }}
                                 >
-                                    <input autoFocus value={draft} onChange={(e) => setDraft(e.target.value)} />
-                                    <button className="icon-btn" type="submit" title="Save the name"><Check size={14} /></button>
-                                    <button className="icon-btn" type="button" title="Cancel" onClick={() => setEditing(null)}><X size={14} /></button>
+                                    <TextInput autoFocus className="w-[140px]" value={draft} onChange={(e) => setDraft(e.target.value)} />
+                                    <IconButton type="submit" title="Save the name"><Check size={14} /></IconButton>
+                                    <IconButton type="button" title="Cancel" onClick={() => setEditing(null)}><X size={14} /></IconButton>
                                 </form>
                             ) : (
                                 <>
-                                    <span className="voice-name">{voice.name}</span>
-                                    <small>{voice.samples} {voice.samples === 1 ? "sample" : "samples"}</small>
-                                    <button
-                                        className="icon-btn"
+                                    <span className="flex-1 font-medium">{voice.name}</span>
+                                    <small className="text-muted">{voice.samples} {voice.samples === 1 ? "sample" : "samples"}</small>
+                                    <IconButton
                                         title="Rename"
                                         onClick={() => {
                                             setDraft(voice.name);
@@ -118,10 +121,10 @@ export function VoicesPanel({ settings }: Props) {
                                         }}
                                     >
                                         <Pencil size={14} />
-                                    </button>
-                                    <button className="icon-btn" title="Forget this voice" onClick={() => void remove(voice.id)}>
+                                    </IconButton>
+                                    <IconButton title="Forget this voice" onClick={() => void remove(voice.id)}>
                                         <Trash2 size={14} />
-                                    </button>
+                                    </IconButton>
                                 </>
                             )}
                         </li>
@@ -129,35 +132,36 @@ export function VoicesPanel({ settings }: Props) {
                 </ul>
             )}
 
-            <div className="voice-add">
-                <input
+            <div className="flex items-center gap-2">
+                <TextInput
+                    className="min-w-0 flex-1"
                     value={name}
                     placeholder="Name, for example your own"
                     disabled={recording || !ready}
                     onChange={(e) => setName(e.target.value)}
                 />
 
-                <button className="btn" disabled={!ready || recording || !name.trim()} onClick={() => void record()}>
+                <Button disabled={!ready || recording || !name.trim()} onClick={() => void record()}>
                     <Mic size={14} />
                     <span>{recording ? `Speak now, ${left}s` : `Record ${RECORD_SECONDS} seconds`}</span>
-                </button>
+                </Button>
             </div>
 
             {recording ? (
-                <div className="bar" aria-hidden>
-                    <div className="fill" style={{ width: `${((RECORD_SECONDS - (left ?? 0)) / RECORD_SECONDS) * 100}%` }} />
+                <div aria-hidden>
+                    <ProgressBar value={(RECORD_SECONDS - (left ?? 0)) / RECORD_SECONDS} />
                 </div>
             ) : null}
 
             {!ready ? (
-                <p className="hint inline">Voices need a speaker model: download microsoft/wavlm-base-plus-sv in Models, under Speakers, and it is picked for you.</p>
+                <p className={NOTE}>Voices need a speaker model: download microsoft/wavlm-base-plus-sv in Models, under Speakers, and it is picked for you.</p>
             ) : (
-                <p className="hint inline">
+                <p className={NOTE}>
                     Stop the translator before recording. Talk normally, in a quiet room, until the timer ends.
                 </p>
             )}
 
-            {error ? <p className="voice-error">{error}</p> : null}
+            {error ? <p className="m-0 text-small text-bad">{error}</p> : null}
         </div>
     );
 }

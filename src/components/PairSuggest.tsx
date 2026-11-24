@@ -5,6 +5,7 @@ import { CircleCheck, Cpu, Download, HardDrive, Languages, Loader } from "lucide
 import { api, errorText, formatBytes } from "../lib/api";
 import { languageName } from "../lib/types";
 import type { DownloadProgress, ModelMeta, Recommendation, RuntimeStatus, Settings } from "../lib/types";
+import { ACCENT_FILL, Button, cx, SURFACE } from "./ui";
 
 interface Props {
     settings : Settings;
@@ -103,45 +104,45 @@ export function PairSuggest({ settings, onChange, onOpen, onNeed }: Props) {
 
         if (p) {
             return (
-                <button className="btn" disabled>
-                    <Loader size={16} className="spin" />
+                <Button disabled>
+                    <Loader size={16} className="animate-spin" />
                     <span>{pct > 0 ? `${pct.toFixed(0)}%` : "Starting"}</span>
-                </button>
+                </Button>
             );
         }
 
         if (rec.installed) {
             return (
-                <button className="btn primary" onClick={() => use(rec.id)}>
+                <Button variant="primary" onClick={() => use(rec.id)}>
                     <CircleCheck size={16} />
                     <span>Use</span>
-                </button>
+                </Button>
             );
         }
 
         if (rec.backend !== "native" && !runtime?.ready) {
             return (
-                <button className="btn" onClick={() => onOpen("storage")} title="This model runs on the Python runtime">
+                <Button onClick={() => onOpen("storage")} title="This model runs on the Python runtime">
                     <Cpu size={16} />
                     <span>{rec.backend === "mlx" ? "Set up MLX" : "Set up Python"}</span>
-                </button>
+                </Button>
             );
         }
 
         if (rec.backend === "mlx" && !runtime?.mlx) {
             return (
-                <button className="btn" onClick={() => onOpen("storage")} title="Add the MLX packages to the runtime">
+                <Button onClick={() => onOpen("storage")} title="Add the MLX packages to the runtime">
                     <Cpu size={16} />
                     <span>Add MLX</span>
-                </button>
+                </Button>
             );
         }
 
         return (
-            <button className="btn primary" onClick={() => download(rec)}>
+            <Button variant="primary" onClick={() => download(rec)}>
                 <Download size={16} />
                 <span>Download</span>
-            </button>
+            </Button>
         );
     };
 
@@ -149,20 +150,28 @@ export function PairSuggest({ settings, onChange, onOpen, onNeed }: Props) {
     const title = chosen ? `${chosen.id} does not cover ${pair}` : `No translation model for ${pair}`;
 
     return (
-        <div className="callout suggest">
-            <Languages size={20} />
+        <div
+            className={cx(
+                "relative mx-gutter my-1.5 flex shrink-0 items-start gap-3.5 rounded-card px-4 py-3.5 animate-rise",
+                SURFACE,
+                "bg-[linear-gradient(135deg,color-mix(in_srgb,var(--accent)_14%,transparent),color-mix(in_srgb,var(--accent-2)_6%,transparent))]",
+            )}
+        >
+            <span className={cx("flex shrink-0 items-center justify-center rounded-[11px] p-2", ACCENT_FILL)}>
+                <Languages size={20} />
+            </span>
 
-            <div className="grow">
+            <div className="min-w-0 flex-1">
                 <strong>{title}</strong>
-                <div className="muted">Pick one of these. It downloads once, then it is used automatically.</div>
+                <div className="text-muted">Pick one of these. It downloads once, then it is used automatically.</div>
 
-                <ul className="suggest-list">
+                <ul className="m-0 mt-2.5 flex list-none flex-col gap-2 p-0">
                     {recs.slice(0, 4).map((rec) => (
-                        <li key={rec.id}>
-                            <div className="grow">
-                                <div className="name">{rec.id}</div>
-                                <div className="meta">
-                                    <span className="stat"><HardDrive size={12} />about {formatBytes(rec.size_bytes)}</span>
+                        <li key={rec.id} className="flex items-center gap-3 rounded-[10px] bg-surface-hi px-3 py-2.5 shadow-soft inset-shadow-specular">
+                            <div className="min-w-0 flex-1">
+                                <div className="truncate font-semibold">{rec.id}</div>
+                                <div className="flex items-center gap-2.5 text-small text-muted">
+                                    <span className="inline-flex items-center gap-1"><HardDrive size={12} />about {formatBytes(rec.size_bytes)}</span>
                                     <span>{rec.note}</span>
                                 </div>
                             </div>
@@ -172,10 +181,10 @@ export function PairSuggest({ settings, onChange, onOpen, onNeed }: Props) {
                     ))}
                 </ul>
 
-                {error ? <div className="muted error-text">{error}</div> : null}
+                {error ? <div className="mt-1.5 text-bad">{error}</div> : null}
             </div>
 
-            <button className="btn" onClick={() => onOpen("models")}>More models</button>
+            <Button onClick={() => onOpen("models")}>More models</Button>
         </div>
     );
 }

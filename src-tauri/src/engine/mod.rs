@@ -547,6 +547,9 @@ fn build_translator(
 }
 
 #[allow(clippy::too_many_arguments)]
+/// Skip live previews while more than this much audio waits to be processed.
+const MAX_PREVIEW_BACKLOG_MS: u64 = 1_000;
+
 fn run_loop(
     app            : AppHandle,
     rx             : Receiver<AudioChunk>,
@@ -594,8 +597,9 @@ fn run_loop(
             Err(RecvTimeoutError::Disconnected) => break,
         };
 
-        let source = chunk.source;
-        let events = segmenters
+        let source   = chunk.source;
+        let chunk_ms = (chunk.samples.len() as u64 * 1000) / crate::audio::SAMPLE_RATE as u64;
+        let events   = segmenters
             .entry(source)
             .or_insert_with(|| {
                 let gate: Option<Box<dyn SpeechGate>> = neural_vad
@@ -612,7 +616,11 @@ fn run_loop(
             };
 
             // If transcription is falling behind, drop live previews, never finals.
-            if !is_final && rx.len() > 6 {
+            // The queue holds chunks of about this one's size, so this estimates
+            // how much audio is waiting.
+            let backlog_ms = rx.len() as u64 * chunk_ms;
+
+            if !is_final && backlog_ms > MAX_PREVIEW_BACKLOG_MS {
                 continue;
             }
 

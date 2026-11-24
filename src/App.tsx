@@ -2,7 +2,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { LogicalSize } from "@tauri-apps/api/dpi";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { ArrowRightLeft, Ear, Languages, Lock, LockOpen, Minimize2, Monitor, Moon, PictureInPicture2, Play, Save, Square, Sun, Trash2 } from "lucide-react";
 
+import { CommandPalette, type Command } from "./components/CommandPalette";
 import { CompactView } from "./components/CompactView";
 import { HistoryView } from "./components/HistoryView";
 import { LiveView } from "./components/LiveView";
@@ -10,12 +12,14 @@ import { ModelsView } from "./components/ModelsView";
 import { Onboarding } from "./components/Onboarding";
 import { OverlayView } from "./components/OverlayView";
 import { SettingsView } from "./components/SettingsView";
-import { Sidebar, type View } from "./components/Sidebar";
+import { MOD, PAGES, Sidebar, type View } from "./components/Sidebar";
 import { StorageView } from "./components/StorageView";
+import { GLASS_STRONG, cx } from "./components/ui";
 import { useEngine } from "./hooks/useEngine";
 import { api, errorText } from "./lib/api";
 import { NAMES_KEY, OVERLAY_DEFAULTS, OVERLAY_KEY, usePersisted } from "./lib/prefs";
-import { languageName } from "./lib/types";
+import { THEMES, useTheme } from "./lib/theme";
+import { AUTO_LANGUAGE, LANGUAGES, languageName } from "./lib/types";
 import type { Settings } from "./lib/types";
 
 const ONBOARDED_KEY = "lt.onboarded";
@@ -47,6 +51,8 @@ function Shell() {
     const [compact, setCompact]       = useState(false);
     const [onboarding, setOnboarding] = useState(!wasOnboarded());
     const [notice, setNotice]         = useState<string | null>(null);
+    const [palette, setPalette]       = useState(false);
+    const [theme, setTheme]           = useTheme();
     const saveTimer                   = useRef<number | undefined>(undefined);
     const savedFinals                 = useRef(0);
     const previousSize                = useRef<{ w: number; h: number } | null>(null);
@@ -137,7 +143,7 @@ function Shell() {
         const back = previousSize.current ?? { w: 1120, h: 740 };
 
         await win.setAlwaysOnTop(false);
-        await win.setMinSize(new LogicalSize(900, 560));
+        await win.setMinSize(new LogicalSize(720, 500));
         await win.setSize(new LogicalSize(back.w, back.h));
 
         setCompact(false);
@@ -160,16 +166,14 @@ function Shell() {
         };
     }, []);
 
-    // Keyboard: Cmd/Ctrl+1..5 switch pages, Cmd/Ctrl+Enter starts or stops.
+    // Keyboard: Cmd/Ctrl+K opens the command palette, Cmd/Ctrl+Enter starts or stops.
     useEffect(() => {
         const onKey = (event: KeyboardEvent) => {
             if (!(event.metaKey || event.ctrlKey)) return;
 
-            const pages: Record<string, View> = { "1": "live", "2": "history", "3": "models", "4": "storage", "5": "settings" };
-
-            if (pages[event.key]) {
+            if (event.key.toLowerCase() === "k") {
                 event.preventDefault();
-                setView(pages[event.key]);
+                setPalette((open) => !open);
             } else if (event.key === "Enter" && settings?.stt_model && !busy) {
                 event.preventDefault();
                 running ? engine.stop() : startNow();
@@ -213,7 +217,63 @@ function Shell() {
         setOnboarding(false);
     };
 
-    if (!settings) return <div className="empty">Loading</div>;
+    if (!settings) return <div className="flex h-full items-center justify-center text-muted">Loading</div>;
+
+    const hasLines = engine.lines.length > 0;
+    const auto     = settings.source_lang === AUTO_LANGUAGE.code;
+
+    const commands: Command[] = [
+        running
+            ? { id: "stop",  group: "Translator", label: "Stop translating",  icon: Square, hint: `${MOD}↩`, keywords: "end pause", run: engine.stop }
+            : { id: "start", group: "Translator", label: "Start translating", icon: Play,   hint: `${MOD}↩`, keywords: "begin listen record", disabled: busy || !settings.stt_model, run: startNow },
+        { id: "subtitles", group: "Translator", label: overlay ? "Hide subtitle window" : "Show subtitle window", icon: PictureInPicture2, keywords: "overlay captions floating", run: () => setOverlay((v) => !v) },
+        { id: "lock",      group: "Translator", label: prefs.locked ? "Unlock subtitles" : "Lock subtitles", icon: prefs.locked ? LockOpen : Lock, keywords: "click through mouse", disabled: !overlay, run: () => setPrefs({ ...prefs, locked: !prefs.locked }) },
+        { id: "swap",      group: "Translator", label: "Swap languages", icon: ArrowRightLeft, keywords: "reverse switch", disabled: running || busy || auto, run: () => update({ ...settings, source_lang: settings.target_lang, target_lang: settings.source_lang }) },
+        { id: "save",      group: "Translator", label: "Save conversation to History", icon: Save, disabled: !hasLines, run: () => saveConversation(false) },
+        { id: "clear",     group: "Translator", label: "Clear transcript", icon: Trash2, keywords: "erase reset", disabled: !hasLines, run: clearLines },
+        { id: "compact",   group: "Translator", label: "Compact window", icon: Minimize2, keywords: "small mini always on top", run: enterCompact },
+
+        ...THEMES.map((option) => ({
+            id       : `theme-${option.id}`,
+            group    : "Appearance",
+            label    : option.id === "system" ? "Match system appearance" : `${option.label} appearance`,
+            icon     : option.id === "dark" ? Moon : option.id === "light" ? Sun : Monitor,
+            keywords : "theme mode dark light colour color",
+            disabled : theme === option.id,
+            run      : () => setTheme(option.id),
+        })),
+
+        ...PAGES.map((page) => ({
+            id    : `go-${page.id}`,
+            group : "Go to",
+            label : page.label,
+            icon  : page.icon,
+            keywords: "page open view",
+            run   : () => setView(page.id),
+        })),
+
+        ...LANGUAGES.map((lang) => ({
+            id        : `to-${lang.code}`,
+            group     : "Translate into",
+            label     : `Translate into ${lang.name}`,
+            icon      : Languages,
+            keywords  : "target",
+            searchOnly: true,
+            disabled  : running || busy || settings.target_lang === lang.code,
+            run       : () => update({ ...settings, target_lang: lang.code }),
+        })),
+
+        ...[AUTO_LANGUAGE, ...LANGUAGES].map((lang) => ({
+            id        : `from-${lang.code}`,
+            group     : "Listen for",
+            label     : `Listen for ${lang.name}`,
+            icon      : Ear,
+            keywords  : "source spoken",
+            searchOnly: true,
+            disabled  : running || busy || settings.source_lang === lang.code,
+            run       : () => update({ ...settings, source_lang: lang.code }),
+        })),
+    ];
 
     if (compact) {
         return (
@@ -231,10 +291,14 @@ function Shell() {
     }
 
     return (
-        <div className="shell">
-            <Sidebar view={view} device={running ? engine.status.device : ""} onChange={setView} />
+        // On macOS the window is transparent: a translucent background lets the
+        // native material tint the whole app. The wash gives the glass colour to pick up.
+        <div className="relative isolate flex h-full bg-bg wash mac:bg-bg/72">
+            <Sidebar view={view} device={running ? engine.status.device : ""} onChange={setView} onCommand={() => setPalette(true)} />
 
-            <main className="content">
+            {/* An inline-size container: pages centre their content with px-gutter. */}
+            <main className="flex min-w-0 flex-1 @container">
+
                 {view === "live" && (
                     <LiveView
                         settings={settings}
@@ -260,10 +324,16 @@ function Shell() {
                 {view === "history"  && <HistoryView names={names} onRename={rename} />}
                 {view === "models"   && <ModelsView settings={settings} onChange={update} onOpen={setView} />}
                 {view === "storage"  && <StorageView settings={settings} onChange={setSettings} />}
-                {view === "settings" && <SettingsView settings={settings} onChange={update} />}
+                {view === "settings" && <SettingsView settings={settings} onChange={update} theme={theme} onTheme={setTheme} />}
             </main>
 
-            {notice ? <div className="toast">{notice}</div> : null}
+            {notice ? (
+                <div className="fixed inset-x-0 bottom-6 z-[60] flex justify-center pointer-events-none">
+                    <div className={cx("relative rounded-full px-5 py-[11px] font-medium rim animate-toast", GLASS_STRONG)}>{notice}</div>
+                </div>
+            ) : null}
+
+            <CommandPalette open={palette} commands={commands} onClose={() => setPalette(false)} />
 
             {onboarding ? <Onboarding settings={settings} onChange={update} onFinish={finishOnboarding} /> : null}
         </div>

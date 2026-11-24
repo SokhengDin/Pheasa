@@ -20,6 +20,7 @@ import {
 
 import { useEngine } from "../hooks/useEngine";
 import { TypingDots } from "./TypingDots";
+import { cx, IconButton } from "./ui";
 import {
     FONT_STACKS,
     GEOMETRY_KEY,
@@ -155,83 +156,106 @@ export function OverlayView() {
     } as React.CSSProperties;
 
     return (
-        <div className="overlay" style={style} onMouseDown={startDrag}>
-            <div className="overlay-bar">
+        <div
+            data-overlay
+            className={cx(
+                "group relative flex min-h-full cursor-grab flex-col gap-2 rounded-[14px] px-4 pt-1.5 pb-3.5 select-none rim",
+                "text-white/95 bg-[var(--overlay-bg,rgba(14,16,20,.66))] inset-shadow-[0_1px_0_rgba(255,255,255,.12)]",
+                "[backdrop-filter:var(--overlay-blur,blur(30px)_saturate(180%))] [-webkit-backdrop-filter:var(--overlay-blur,blur(30px)_saturate(180%))]",
+                // Always dark: re-point the tokens the shared primitives use (IconButton, TypingDots, rim).
+                "[--text:rgba(255,255,255,.95)] [--muted:rgba(255,255,255,.6)] [--accent:#64a8ff] [--fill-hover:rgba(255,255,255,.14)]",
+                "[--rim-hi:rgba(255,255,255,.3)] [--rim-lo:rgba(255,255,255,.04)]",
+            )}
+            style={style}
+            onMouseDown={startDrag}
+        >
+            <div className="flex items-center justify-between text-white/60">
                 <GripHorizontal size={16} />
 
-                <div className="overlay-tools">
-                    <button className="icon-btn" title="Dock to the top of this screen" onClick={() => dock("top")}>
+                <div className="flex items-center gap-0.5 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                    <IconButton title="Dock to the top of this screen" onClick={() => dock("top")}>
                         <ArrowUpToLine size={14} />
-                    </button>
+                    </IconButton>
 
-                    <button className="icon-btn" title="Dock to the bottom of this screen" onClick={() => dock("bottom")}>
+                    <IconButton title="Dock to the bottom of this screen" onClick={() => dock("bottom")}>
                         <ArrowDownToLine size={14} />
-                    </button>
+                    </IconButton>
 
-                    <button
-                        className="icon-btn"
+                    <IconButton
                         title="Smaller text"
                         onClick={() => setPrefs({ ...prefs, fontSize: Math.max(12, prefs.fontSize - 2) })}
                     >
                         <Minus size={14} />
-                    </button>
+                    </IconButton>
 
                     <ALargeSmall size={14} />
 
-                    <button
-                        className="icon-btn"
+                    <IconButton
                         title="Larger text"
                         onClick={() => setPrefs({ ...prefs, fontSize: Math.min(64, prefs.fontSize + 2) })}
                     >
                         <Plus size={14} />
-                    </button>
+                    </IconButton>
 
-                    <button
-                        className={`icon-btn ${prefs.showOriginal ? "on" : ""}`}
+                    <IconButton
+                        active={prefs.showOriginal}
                         title="Show the original text"
                         onClick={() => setPrefs({ ...prefs, showOriginal: !prefs.showOriginal })}
                     >
                         <Languages size={14} />
-                    </button>
+                    </IconButton>
 
-                    <button
-                        className="icon-btn"
+                    <IconButton
                         title="Lock: let the mouse pass through. Unlock from the main window"
                         onClick={() => setPrefs({ ...prefs, locked: true })}
                     >
                         <Lock size={14} />
-                    </button>
+                    </IconButton>
 
-                    <button className="icon-btn" title="Hide" onClick={() => win.hide()}>
+                    <IconButton title="Hide" onClick={() => win.hide()}>
                         <X size={14} />
-                    </button>
+                    </IconButton>
                 </div>
             </div>
 
             {recent.length === 0 ? (
-                <div className="overlay-line muted">Waiting for speech</div>
+                <div className="text-white/60 animate-rise [animation-duration:.25s]">Waiting for speech</div>
             ) : (
                 recent.map((line) => {
                     const shown = names[line.speaker] || line.speaker;
 
                     return (
-                        <div key={line.id} className={`overlay-line ${line.is_final ? "" : "partial"}`}>
+                        <div key={line.id} className={cx("animate-rise [animation-duration:.25s]", !line.is_final && "opacity-60")}>
                             {prefs.showSpeaker ? (
-                                <span className="overlay-speaker" style={{ color: speakerColor(line.speaker) }}>
+                                <span className="text-small font-semibold" style={{ color: speakerColor(line.speaker) }}>
                                     {shown}
                                 </span>
                             ) : null}
 
-                            <div className="overlay-translation">{line.translation ?? <TypingDots />}</div>
+                            <div
+                                className={cx(
+                                    "text-[length:var(--overlay-fs,24px)] leading-[1.25] text-[color:var(--overlay-color,rgba(255,255,255,.95))]",
+                                    "[font-weight:var(--overlay-weight,500)] [font-family:var(--overlay-font,inherit)] [text-shadow:var(--overlay-shadow,none)]",
+                                )}
+                            >
+                                {line.translation ?? <TypingDots />}
+                            </div>
 
-                            {prefs.showOriginal ? <div className="overlay-original">{line.text}</div> : null}
+                            {prefs.showOriginal ? (
+                                <div className="text-[length:calc(var(--overlay-fs,24px)*.58)] text-white/60 [font-family:var(--overlay-font,inherit)] [text-shadow:var(--overlay-shadow,none)]">
+                                    {line.text}
+                                </div>
+                            ) : null}
                         </div>
                     );
                 })
             )}
 
             <button
-                className="overlay-grip"
+                className={cx(
+                    "absolute right-2 bottom-2 z-[1] size-3.5 cursor-nwse-resize border-0 p-0 opacity-0 group-hover:opacity-100",
+                    "bg-[linear-gradient(135deg,transparent_50%,rgba(255,255,255,.6)_50%,rgba(255,255,255,.6)_60%,transparent_60%,transparent_75%,rgba(255,255,255,.6)_75%,rgba(255,255,255,.6)_85%,transparent_85%)]",
+                )}
                 title="Resize"
                 onMouseDown={(e) => {
                     e.stopPropagation();
