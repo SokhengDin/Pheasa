@@ -150,7 +150,7 @@ async function answer(cmd: string, args: Record<string, unknown> = {}): Promise<
         }
         case "storage_report": return {
             models: [], models_bytes: 0, runtime: RUNTIME, sessions_bytes: 0, total_bytes: RUNTIME.size_bytes,
-            path: "/Users/you/Library/Application Support/live-translator",
+            path: "/Users/you/Library/Application Support/dev.sokheng.pheasa",
         };
         default: return null;
     }

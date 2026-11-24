@@ -1,8 +1,8 @@
-<p align="center"><img src="public/logo.svg" alt="Phasa ភាសា" width="420"></p>
+<p align="center"><img src="public/logo.svg" alt="Pheasa ភាសា" width="420"></p>
 
-# Phasa
+# Pheasa
 
-Real-time speech translation for conversations and video calls. Phasa listens to your microphone and system audio, transcribes speech with Whisper, translates it (offline or through a cloud API), and shows live subtitles with speaker labels.
+Real-time speech translation for conversations and video calls. Pheasa listens to your microphone and system audio, transcribes speech with Whisper, translates it (offline or through a cloud API), and shows live subtitles with speaker labels.
 
 ## Download
 
@@ -10,14 +10,21 @@ Get the installer for your system from the [Releases page](https://github.com/So
 
 | System | File |
 | --- | --- |
-| macOS (Apple silicon) | `Phasa_*_aarch64.dmg` |
-| macOS (Intel) | `Phasa_*_x64.dmg` |
-| Windows | `Phasa_*_x64-setup.exe` or `.msi` |
+| macOS (Apple silicon) | `Pheasa_*_aarch64.dmg` |
+| macOS (Intel) | `Pheasa_*_x64.dmg` |
+| Windows | `Pheasa_*_x64-setup.exe` or `.msi` |
 | Linux | `.AppImage`, `.deb` or `.rpm` |
 
 **Python 3 must be installed** on your machine (python.org, Homebrew, or your package manager).
 
-The builds are not code-signed yet, so macOS and Windows show a warning the first time you open the app. On macOS, right-click the app and choose Open. On Windows, click "More info", then "Run anyway".
+The builds are not signed with an Apple or Microsoft certificate yet, so the system warns you the first time:
+
+- **macOS:** drag Pheasa to Applications, then run this once in Terminal:
+  ```sh
+  xattr -cr /Applications/Pheasa.app
+  ```
+  Or open the app, then go to System Settings → Privacy & Security and click **Open Anyway**.
+- **Windows:** click "More info", then "Run anyway".
 
 ## Getting started
 

@@ -40,7 +40,7 @@ impl Translator for CloudTranslator {
             self.client = Some(
                 reqwest::blocking::Client::builder()
                     .timeout(Duration::from_secs(20))
-                    .user_agent("phasa/0.1")
+                    .user_agent("pheasa/0.1")
                     .build()?,
             );
         }

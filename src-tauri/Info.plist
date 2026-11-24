@@ -3,8 +3,8 @@
 <plist version="1.0">
 <dict>
   <key>NSMicrophoneUsageDescription</key>
-  <string>Phasa listens to your microphone to transcribe and translate what you say.</string>
+  <string>Pheasa listens to your microphone to transcribe and translate what you say.</string>
   <key>NSAudioCaptureUsageDescription</key>
-  <string>Phasa captures system audio so it can translate the other people on your call.</string>
+  <string>Pheasa captures system audio so it can translate the other people on your call.</string>
 </dict>
 </plist>

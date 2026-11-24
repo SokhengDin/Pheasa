@@ -25,7 +25,7 @@ export function Sidebar({ view, device, onChange }: Props) {
 
             <div className="brand" data-tauri-drag-region>
                 <img src="/mark.svg" width={24} height={24} alt="" draggable={false} />
-                <span>Phasa</span>
+                <span>Pheasa</span>
             </div>
 
             <div className="nav-section">Translate</div>

@@ -1,4 +1,4 @@
-"""Phasa Python module.
+"""Pheasa Python module.
 
 Embedded in the Rust app through PyO3 and called in-process, so there is no
 separate server. Rust only ever passes folders inside its own data directory,

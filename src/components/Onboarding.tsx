@@ -81,7 +81,7 @@ export function Onboarding({ settings, onChange, onFinish }: Props) {
                 {step === 0 ? (
                     <>
                         <Languages size={28} className="ok" />
-                        <h2>Welcome to Phasa</h2>
+                        <h2>Welcome to Pheasa</h2>
                         <p className="muted">Which language do you hear, and which do you want to read?</p>
 
                         <div className="fields">

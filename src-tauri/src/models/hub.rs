@@ -70,7 +70,7 @@ struct PlanItem {
 }
 
 fn http() -> Result<reqwest::Client> {
-    Ok(reqwest::Client::builder().user_agent("phasa/0.2").build()?)
+    Ok(reqwest::Client::builder().user_agent("pheasa/0.2").build()?)
 }
 
 fn urlencode(text: &str) -> String {

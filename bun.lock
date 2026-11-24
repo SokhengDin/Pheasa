@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "live-translator",
+      "name": "pheasa",
       "dependencies": {
         "@tauri-apps/api": "^2.12.5",
         "lucide-react": "^1.79.0",

@@ -91,7 +91,7 @@ jobs:
           tauriScript:  bunx tauri
           projectPath:  .
           tagName:      ${{ github.ref_name }}
-          releaseName:  "Phasa ${{ github.ref_name }}"
+          releaseName:  "Pheasa ${{ github.ref_name }}"
           releaseBody:  |
             ## Download
 
@@ -105,8 +105,11 @@ jobs:
             ## Before you install
 
             - **Python 3 must be installed** (python.org, Homebrew, or your package manager).
-            - The builds are not code-signed yet. On macOS, right-click the app and choose
-              **Open**. On Windows, click **More info**, then **Run anyway**.
+            - The builds are not signed with an Apple or Microsoft certificate yet.
+              - **macOS:** drag Pheasa to Applications, then run this once in Terminal:
+                `xattr -cr /Applications/Pheasa.app`
+                (or open it, then go to System Settings → Privacy & Security → **Open Anyway**).
+              - **Windows:** click **More info**, then **Run anyway**.
 
             See the [README](https://github.com/${{ github.repository }}#getting-started) to get started.
           releaseDraft: false

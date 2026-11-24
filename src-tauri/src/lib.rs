@@ -85,12 +85,12 @@ pub fn run() {
             let toggle    = MenuItem::with_id(app, "toggle", "Start or stop translating", true, None::<&str>)?;
             let subtitles = MenuItem::with_id(app, "subtitles", "Show or hide subtitles", true, None::<&str>)?;
             let lock      = MenuItem::with_id(app, "lock", "Lock or unlock subtitles", true, None::<&str>)?;
-            let open      = MenuItem::with_id(app, "open", "Open Phasa", true, None::<&str>)?;
+            let open      = MenuItem::with_id(app, "open", "Open Pheasa", true, None::<&str>)?;
             let quit      = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
             let menu      = Menu::with_items(app, &[&toggle, &subtitles, &lock, &open, &quit])?;
 
             let mut tray = TrayIconBuilder::new()
-                .tooltip("Phasa")
+                .tooltip("Pheasa")
                 .menu(&menu)
                 .on_menu_event(|app, event| match event.id().as_ref() {
                     "open" => show_main(app),
@@ -164,5 +164,5 @@ pub fn run() {
             commands::save_text_file,
         ])
         .run(tauri::generate_context!())
-        .expect("failed to run Phasa");
+        .expect("failed to run Pheasa");
 }
