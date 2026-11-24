@@ -431,6 +431,10 @@ def load_mt(req):
 
     model = model.to(device).eval()
 
+    # Output length is capped by `max_new_tokens` in `translate`; a `max_length`
+    # shipped in the model's generation config would only clash with it.
+    model.generation_config.max_length = None
+
     cls   = type(tok).__name__.lower()
     mtype = getattr(config, "model_type", "")
 
