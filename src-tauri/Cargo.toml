@@ -1,0 +1,57 @@
+[package]
+name         = "live-translator"
+version      = "0.1.0"
+description  = "Real-time speech translator with live subtitles and speaker labels"
+edition      = "2021"
+rust-version = "1.90"
+
+[lib]
+name       = "live_translator_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.7", features = [] }
+
+[dependencies]
+tauri               = { version = "2.12", features = ["macos-private-api", "tray-icon", "image-png"] }
+tauri-plugin-dialog = "2"
+tauri-plugin-global-shortcut = "2"
+
+# Embedded Python. Needs a Python 3.9+ install with its shared library at build
+# time (python.org installer, Homebrew, or python3-dev). abi3 keeps the binary
+# working with any newer Python 3 on Windows.
+pyo3                = { version = "0.30", features = ["auto-initialize", "abi3-py39"] }
+regex               = "1"
+serde               = { version = "1", features = ["derive"] }
+serde_json          = "1"
+anyhow              = "1"
+log                 = "0.4"
+env_logger          = "0.11"
+crossbeam-channel   = "0.5"
+parking_lot         = "0.12"
+rustfft             = "6"
+
+cpal                = "0.18"
+
+candle-core         = "0.11"
+candle-nn           = "0.11"
+candle-transformers = "0.11"
+tokenizers          = { version = "0.23", default-features = false, features = ["onig"] }
+
+reqwest             = { version = "0.13", default-features = false, features = ["json", "stream", "blocking", "native-tls", "http2"] }
+tokio               = { version = "1", features = ["fs", "io-util", "sync", "time", "rt-multi-thread", "macros"] }
+futures-util        = "0.3"
+
+# Apple GPU (Metal) is always compiled in on macOS.
+[target.'cfg(target_os = "macos")'.dependencies]
+candle-core         = { version = "0.11", features = ["metal"] }
+candle-nn           = { version = "0.11", features = ["metal"] }
+candle-transformers = { version = "0.11", features = ["metal"] }
+
+[features]
+default = []
+
+# NVIDIA GPU on Windows and Linux: build with `bun tauri build -- --features cuda`
+# (needs the CUDA toolkit installed). Without it the app runs on CPU.
+cuda  = ["candle-core/cuda", "candle-nn/cuda", "candle-transformers/cuda"]
+cudnn = ["cuda", "candle-core/cudnn", "candle-nn/cudnn", "candle-transformers/cudnn"]

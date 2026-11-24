@@ -1,0 +1,101 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Optional signing secrets (not used yet; builds are unsigned).
+# Add these to the repository secrets and pass them to tauri-action's env
+# when you are ready to sign:
+#   APPLE_CERTIFICATE           base64-encoded .p12 Developer ID certificate
+#   APPLE_CERTIFICATE_PASSWORD  password for the .p12 file
+#   APPLE_SIGNING_IDENTITY      e.g. "Developer ID Application: Name (TEAMID)"
+#   APPLE_ID                    Apple ID email used for notarization
+#   APPLE_PASSWORD              app-specific password for that Apple ID
+#   APPLE_TEAM_ID               Apple developer team ID
+#   TAURI_SIGNING_PRIVATE_KEY   private key for signing updater artifacts
+
+jobs:
+  release:
+    name: Release (${{ matrix.platform }} ${{ matrix.args }})
+    runs-on: ${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            args: "--target aarch64-apple-darwin"
+            rust_targets: aarch64-apple-darwin
+          - platform: macos-15-intel
+            args: "--target x86_64-apple-darwin"
+            rust_targets: x86_64-apple-darwin
+          - platform: ubuntu-22.04
+            args: ""
+            rust_targets: ""
+          - platform: windows-latest
+            args: ""
+            rust_targets: ""
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libxdo-dev \
+            libssl-dev \
+            libasound2-dev \
+            patchelf \
+            python3-dev
+
+      # The crate embeds Python through PyO3, so Python is needed at build time.
+      - name: Setup Python
+        if: runner.os != 'Linux'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_targets }}
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "src-tauri -> target"
+
+      - name: Install frontend dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build and publish
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tauriScript:  bunx tauri
+          projectPath:  .
+          tagName:      ${{ github.ref_name }}
+          releaseName:  "Phasa ${{ github.ref_name }}"
+          releaseBody:  |
+            Python 3 must be installed on the machine to run Phasa.
+
+            These builds are unsigned, so macOS Gatekeeper and Windows SmartScreen
+            will show a warning the first time you open the app.
+          releaseDraft: true
+          prerelease:   false
+          args:         ${{ matrix.args }}
